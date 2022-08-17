@@ -19,7 +19,10 @@
         - 1d dispatch: take an action and update the state
 */
 function createStore(reducer) {
-  var state;
+  //combineReducers 만든 리듀서를 store에 줌
+  // 때문에 dispatch 할때 리듀서가 combineReducers로 만들어진 리듀서임
+
+  let state = {number: 0, diff: 1};
   var listeners = [];
 
   function getState() {
@@ -35,7 +38,7 @@ function createStore(reducer) {
 
   function dispatch(action) {
     state = reducer(state, action);
-    listeners.forEach(function(listener) {
+    listeners.forEach(function (listener) {
       listener();
     });
     return action;
@@ -55,14 +58,20 @@ function createStore(reducer) {
         {key: function(state[key], action)}
 */
 function combineReducers(reducers) {
+  // combineReducers는 같은 기능을 하는 부분을 가지고 있고
+  // 다른 부분은 해당 리듀서의 이름만 키값으로 들고있다
   var keys = Object.keys(reducers);
-  return function(state, action) {
+  return function (state, action) {
     state = state || {};
     var next = {};
-    keys.forEach(function(key) {
-      next[key] = reducers[key](state[key], action);
+    let hasChanged = false;
+    keys.forEach(function (key) {
+      const preState = state[key];
+      const nextState = reducers[key](preState, action);
+      next[key] = nextState;
+      hasChanged = hasChanged || nextState !== preState;
     });
-    return next;
+    return hasChanged ? next : state;
   };
 }
 
@@ -72,9 +81,9 @@ function combineReducers(reducers) {
 */
 function bindActionCreators(actionCreators, dispatch) {
   var bounded = {};
-  Object.keys(actionCreators).forEach(function(key) {
+  Object.keys(actionCreators).forEach(function (key) {
     var actionCreator = actionCreators[key];
-    bounded[key] = function() {
+    bounded[key] = function () {
       var args = Array.prototype.slice.call(arguments);
       dispatch(actionCreator.apply(null, args));
     };
@@ -100,8 +109,8 @@ function bindActionCreators(actionCreators, dispatch) {
     }
 */
 function applyMiddleware(middleware) {
-  return function(createStore) {
-    return function(reducer) {
+  return function (createStore) {
+    return function (reducer) {
       var store = createStore(reducer);
       return {
         getState: store.getState,
